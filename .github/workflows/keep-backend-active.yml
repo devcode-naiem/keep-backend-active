@@ -1,0 +1,13 @@
+name: Keep Backend Active
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # Run every 5 minutes
+
+jobs:
+  keep-backend-alive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ping the backend API
+        run: curl -X GET https://pda-ruet-backend-final.onrender.com/api/latest/stat
