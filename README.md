@@ -1,1 +1,1 @@
-# keep-backend-active
+[![Keep Backend Active](https://github.com/devcode-naiem/keep-backend-active/actions/workflows/keep-backend-active.yml/badge.svg)](https://github.com/devcode-naiem/keep-backend-active/actions/workflows/keep-backend-active.yml)
