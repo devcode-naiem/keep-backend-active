@@ -1,17 +1,15 @@
 name: Keep Backend Active
 
-# Define the triggers for the workflow
+# Define triggers for the workflow
 on:
   schedule:
     - cron: '*/5 * * * *' # Run every 5 minutes
-  workflow_dispatch: # Allow manual trigger for testing or debugging
+  workflow_dispatch: # Allow manual triggering of the workflow
 
 jobs:
   keep-backend-alive:
-    # Define the environment for the job
     runs-on: ubuntu-latest
 
-    # Set environment variables at the job level
     env:
       BACKEND_API_URL: ${{ secrets.BACKEND_API_URL }} # Backend API URL from GitHub Secrets
       EXPECTED_STATUS_CODE: 200                      # Expected HTTP status code
@@ -19,44 +17,41 @@ jobs:
     steps:
       # Step 1: Log the start of the workflow
       - name: Log Workflow Start
-        run: echo "Starting the Keep Backend Active workflow at $(date). Triggered by schedule or manual dispatch."
+        run: |
+          echo "Starting the Keep Backend Active workflow at $(date)."
+          echo "Backend API URL: $BACKEND_API_URL"
 
-      # Step 2: Validate the backend API availability
-      - name: Ping the Backend API
-        id: ping_api # Step ID to reference outputs
+      # Step 2: Ping the backend API and handle output
+      - name: Ping Backend API
         run: |
           echo "Pinging the backend API at $BACKEND_API_URL..."
           RESPONSE=$(curl -s -o /dev/null -w "%{http_code}" $BACKEND_API_URL)
           echo "Received HTTP status code: $RESPONSE"
+          echo "response_code=$RESPONSE" >> $GITHUB_OUTPUT
           if [ "$RESPONSE" -ne "$EXPECTED_STATUS_CODE" ]; then
-            echo "::set-output name=status_code::$RESPONSE"
-            echo "::set-output name=ping_status::failed"
+            echo "Error: Unexpected HTTP status code $RESPONSE"
             exit 1
           fi
-          echo "::set-output name=status_code::$RESPONSE"
-          echo "::set-output name=ping_status::success"
-        continue-on-error: true # Allow this step to fail for notifications
 
       # Step 3: Log successful execution
       - name: Log Success
-        if: steps.ping_api.outputs.ping_status == 'success'
+        if: always()
         run: |
-          echo "The backend API was successfully pinged."
-          echo "Workflow completed successfully at $(date)."
+          echo "The backend API was successfully pinged at $(date)."
 
-  # Failure Notification Job
   notify-on-failure:
     needs: keep-backend-alive
-    if: failure() # Trigger only when the main job fails
+    if: failure() # Run only when the main job fails
     runs-on: ubuntu-latest
 
     steps:
       # Step 1: Log failure details
-      - name: Log Failure
-        run: echo "The Keep Backend Active workflow failed. Sending email notification."
+      - name: Log Failure Details
+        run: |
+          echo "The Keep Backend Active workflow failed at $(date)."
+          echo "Check the workflow logs for details."
 
       # Step 2: Send GitHub email notification
-      - name: Send GitHub Email Notification
+      - name: Send Email Notification
         run: |
-          echo "Sending email notification for workflow failure."
-          echo "::error ::The workflow to keep the backend active failed. HTTP status code: ${{ needs.keep-backend-alive.outputs.status_code }}. Check the logs for more details."
+          echo "::error::The Keep Backend Active workflow failed. Please check the logs for details. HTTP status code: ${{ needs.keep-backend-alive.outputs.response_code }}"
